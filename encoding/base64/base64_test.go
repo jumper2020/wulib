@@ -2,62 +2,50 @@ package base64
 
 import (
 	"encoding/base64"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 //Test
+
 func TestBase64Coding_Encode(t *testing.T) {
 
-	var bc Base64Coding
+	a := assert.New(t)
 
+	var bc Base64Coding
 	t.Run("test1", func(t *testing.T){
 		rst := bc.Encode([]byte("it's a simple test."))
-		if string(rst) != "aXQncyBhIHNpbXBsZSB0ZXN0Lg=="{
-			t.Errorf("result not expected.")
-		}
+		a.Equal("aXQncyBhIHNpbXBsZSB0ZXN0Lg==", string(rst), "result not expected.")
 	})
 
 	t.Run("test2", func(t *testing.T){
 		rst := bc.Encode([]byte("it's a complicated test."))
-		if string(rst) != "aXQncyBhIGNvbXBsaWNhdGVkIHRlc3Qu"{
-			t.Errorf("result not expected.")
-		}
+		a.Equal("aXQncyBhIGNvbXBsaWNhdGVkIHRlc3Qu", string(rst), "result not expected.")
 	})
 
 	t.Run("test3", func(t *testing.T){
 		rst := bc.Encode([]byte("it's a abnormal test.一个非正常测试")) //注意确定编码方式与测试网站上使用的编码一致，这里是utf-8
-		if string(rst) != "aXQncyBhIGFibm9ybWFsIHRlc3Qu5LiA5Liq6Z2e5q2j5bi45rWL6K+V"{
-			t.Errorf("result not expected.")
-		}
+		a.Equal("aXQncyBhIGFibm9ybWFsIHRlc3Qu5LiA5Liq6Z2e5q2j5bi45rWL6K+V", string(rst), "result not expected.")
 	})
 }
 
 func TestBase64Coding_Decode(t *testing.T) {
-	if testing.Short(){
-		t.Skip("skip this test func.")
-	}
+	a := assert.New(t)
 
 	var bc Base64Coding
-
 	t.Run("test1", func(t *testing.T){
 		rst := bc.Decode([]byte("aXQncyBhIHNpbXBsZSB0ZXN0Lg=="))
-		if string(rst) != "it's a simple test."{
-			t.Errorf("result not expected.")
-		}
+		a.Equal("it's a simple test.", string(rst), "result not expected.")
 	})
 
 	t.Run("test2", func(t *testing.T){
 		rst := bc.Decode([]byte("aXQncyBhIGNvbXBsaWNhdGVkIHRlc3Qu"))
-		if string(rst) != "it's a complicated test."{
-			t.Errorf("result not expected.")
-		}
+		a.Equal("it's a complicated test.", string(rst), "result not expected.")
 	})
 
 	t.Run("test3", func(t *testing.T){
 		rst := bc.Decode([]byte("aXQncyBhIGFibm9ybWFsIHRlc3Qu5LiA5Liq6Z2e5q2j5bi45rWL6K+V"))
-		if string(rst) != "it's a abnormal test.一个非正常测试"{
-			t.Errorf("result not expected.")
-		}
+		a.Equal("it's a abnormal test.一个非正常测试", string(rst), "result not expected.")
 	})
 
 }
