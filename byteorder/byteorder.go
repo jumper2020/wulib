@@ -12,6 +12,8 @@ import (
 //	0xa1 - 0x12  0xa2 - 0x34  0xa3 - 0x56  0xa4 - 0x78
 //	little endian: 低址存低位，高址存高位
 //	0xa1 - 0x78  0xa2 - 0x56  0xa3 - 0x34  0xa4 - 0x12
+//https://itimetraveler.github.io/2018/01/18/%E5%A6%82%E4%BD%95%E5%88%A4%E6%96%ADCPU%E6%98%AF%E5%A4%A7%E7%AB%AF%E8%BF%98%E6%98%AF%E5%B0%8F%E7%AB%AF%E6%A8%A1%E5%BC%8F/
+//http://www.ruanyifeng.com/blog/2016/11/byte-order.html
 
 //2. 注意:
 //大小端是指在内存中的存储方式，在进行运算的时候（左右移或者类型转换）都是将内存中的数据读入到寄存器中进行运算的。
