@@ -21,6 +21,7 @@ import (
 //总之，大小端为内存中的存储方式，不会影响运算。应该可以认为无论大小端，在执行运算的时候都是同一个形式，比如 0x1234
 //参见
 //https://stackoverflow.com/questions/7184789/does-bit-shift-depend-on-endianness
+//https://bbs.csdn.net/topics/390567539
 //因此 对于疑问 https://stackoverflow.com/questions/7184789/does-bit-shift-depend-on-endianness
 //其中以内存中的存储形式来执行 >> 是错误的。
 //byte(xxx) 是在寄存器中执行运算， 都是获取的低位字节。
