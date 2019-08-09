@@ -40,6 +40,11 @@ import (
 //真正重要的是数据流的字节顺序，也就是说读文件的程序和写文件的程序都应该就文件（即数据流）的字节序达成共识。
 //这里比如pc1(大端或小端)上的程序以大端序写了一个文件，pc2(大端或小端)上解读该文件的程序以小端序来解读文件，那就会因为不一致而解析出错。
 //计算机的字节序与数据处理本身没有关系。(就是上面说的无论内存中是大小端存储，计算的时候都是读到寄存器中去处理的。)
+//看下自己提的问 https://stackoverflow.com/questions/57405451/question-about-byte-order-and-go-standard-library?noredirect=1#comment101330134_57405451
+//别人回答： Yes, you have to pick the endianess for the file if you store binary data (for text formats it's already decided by the encoding).
+//However, the code that deals with the file in no way depends on the endianess of the machine running that code. Not in Go nor any other language.
+//In Go you just use either of binary.LittleEndian or binary.BigEndian consistently and you're done. – Peter 1 hour ago
+
 
 //function:
 //0. check big endian / little endian
