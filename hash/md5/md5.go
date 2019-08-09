@@ -13,6 +13,9 @@ import (
 //3. 将step 2中 a/b/c/d 组合成为 128bit 结果即可, 这里需要按照内存中的顺序来链接 a/b/c/d
 //	比如 a = 0x12345678 cpu为小端， 内存中应该是 0x78 0x56 0x34 0x12， 这样构造出结果。具体参见 transNumtoByte函数
 
+//参考资料：
+//https://zhuanlan.zhihu.com/p/37257569
+//https://www.ietf.org/rfc/rfc1321.txt
 
 type Md5Hash struct {
 	a,b,c,d uint32

@@ -32,6 +32,14 @@ import (
 //要想判断内存中是大端还是小端方式，应该使用 unsafe.Pointer, 如下 checkEndian 函数
 //参考： https://stackoverflow.com/questions/51332658/any-better-way-to-check-endianness-in-go
 
+//另外参考： https://commandcenter.blogspot.com/2012/04/byte-order-fallacy.html
+//Notice the phrase "computer's byte order". What does matter is the byte order of a peripheral or encoded data stream,
+//but--and this is the key point--the byte order of the computer doing the processing is irrelevant to the processing of the data itself.
+//If the data stream encodes values with byte order B, then the algorithm to decode the value on computer with byte order C should be about B,
+//not about the relationship between B and C.
+//真正重要的是数据流的字节顺序，也就是说读文件的程序和写文件的程序都应该就文件（即数据流）的字节序达成共识。
+//这里比如pc1(大端或小端)上的程序以大端序写了一个文件，pc2(大端或小端)上解读该文件的程序以小端序来解读文件，那就会因为不一致而解析出错。
+//计算机的字节序与数据处理本身没有关系。(就是上面说的无论内存中是大小端存储，计算的时候都是读到寄存器中去处理的。)
 
 //function:
 //0. check big endian / little endian
