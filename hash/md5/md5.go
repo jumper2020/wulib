@@ -44,8 +44,6 @@ func pad(src []byte) []byte{
 	padedSrc[srcLen] = 0x80
 	copy(padedSrc[srcLen+1 : srcLen+padLen], bytes.Repeat([]byte{0x00}, int(padLen-1)))
 
-	//因为x86架构中cpu是小端，这里为了让电脑获取正确的长度，存入时应该使用小端方式存入长度
-	//lenByte[0] 为低址， 应该存放低位, 使用 & 获取指定位，然后存放到对应地址
 	//为了尽可能减少依赖， 这里没有使用 binary.LittleEndian 相关函数
 	lenByte := [8]byte{}
 	bitLen := srcLen * 8
