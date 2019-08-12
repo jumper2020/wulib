@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+//http://www.hankcs.com/security/des-algorithm-illustrated.html
+
 func TestTransform(t *testing.T) {
 
 	//func Transform(src []byte, trans []uint8) []byte
