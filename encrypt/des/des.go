@@ -3,7 +3,6 @@ package des
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 )
 
 type EncryptDes struct {
@@ -16,7 +15,7 @@ var E []uint8
 var P []uint8
 var ip_1 []uint8
 var sdata [][]uint8
-var k [][]byte
+var k []uint64
 
 func init() {
 
@@ -141,74 +140,17 @@ func init() {
 
 }
 
-//
-//type BitGroup struct{
-//	content []byte
-//	bitLen uint64
-//}
-//
-//type Bit struct{
-//	content []byte
-//	len uint64
-//}
-//
-//func (self *BitGroup) TransformGroup(bitLen uint64) []BitGroup{
-//	if self.bitLen == bitLen{
-//		return self
-//	}
-//
-//
-//}
-//
-////eight bit to six bit
-//func eTos(src []uint8) []uint8{
-//	lbit := len(src)*8
-//	if lbit%6 != 0{
-//		return nil
-//	}
-//
-//	rst := make([]uint8, 0)
-//	for i := 0; i < lbit; i += 6 {
-//
-//
-//	}
-//
-//
-//}
 
-func xBetweenByteSlice(s1 []byte, s2 []byte) []byte {
-	l := len(s1)
-	if len(s2) != l {
-		return nil
+
+func s(src uint64) uint64 {
+
+	src6 := make([]uint8, 0)
+	for i := 16; i < 64; i += 6 {
+		src6 = append(src6, uint8((src<<uint(i))>>58))
 	}
 
-	rst := make([]byte, 0)
-	for i := 0; i < l; i++ {
-		tmp := s1[i] ^ s2[i]
-		rst = append(rst, tmp)
-	}
-
-	return rst
-}
-
-func s(src []byte) []byte {
-
-	if len(src) != 6{
-		return nil
-	}
-	src = append([]byte{0x00, 0x00}, src...)
-
-	//need to transform eight bit one group to six bit one group
-	num := binary.BigEndian.Uint64(src)
-	src6 := make([]byte, 0)
-	for i := 16; i < 64; i+=6 {
-		tmp := num
-		src6 = append(src6, byte((tmp<<uint(i))>>58))
-	}
-	//fmt.Printf("src6: %v\n", src6)
-
-	rst := make([]byte, 0)
-	for k,v := range src6{
+	rst := make([]uint8, 0)
+	for k, v := range src6 {
 		row := (v>>5)<<1 | (v & 0x01)
 		col := ((v << 3) >> 4)
 		s := sdata[k][row*16+col]
@@ -216,38 +158,25 @@ func s(src []byte) []byte {
 	}
 
 	//need to transform four bit one group to eight bit one group
-	r := make([]byte, 0)
-	for i := 0; i < len(rst); i+=2 {
-		tmp := (rst[i]<<4) | (rst[i+1])
-		r = append(r, tmp)
+	r := make([]byte, 8)
+	for i := 0; i < len(rst); i += 2 {
+		tmp := (rst[i] << 4) | (rst[i+1])
+		r[4+i/2] = tmp
 	}
 
-	return r
+	return binary.BigEndian.Uint64(r)
 }
 
-
-func transform(src []byte, trans []uint8) []byte {
-
-	rstLen := len(trans)
-	if rstLen%8 != 0 {
-		return nil
-	}
-	rst := make([]byte, rstLen/8)
-
+func transform(src uint64, srcLen uint8, trans []uint8, destLen uint8) (block uint64) {
+	srcPad := 64 - srcLen
+	desPad := 64 - destLen
 	for k, v := range trans {
-		index := v - 1
-		sIndex := index / 8
-		sShift := index % 8
-		tmp := src[sIndex] & (0x01 << (7 - sShift))
-		if tmp != 0 {
-			i := k
-			kIndex := i / 8
-			kShift := i % 8
-			rst[kIndex] |= uint8(0x01 << uint8(7-kShift))
-		}
+		bit := ((src >> (64 - srcPad - v)) & 0x01)
+		block |= bit << (64 - desPad - uint8(k+1))
 	}
-	return rst
+	return
 }
+
 
 //num is the num, bitLen is the actual bit length of num.
 func rotateLeftShift(num uint64, bitLen uint8, shift uint8) uint64 {
@@ -258,24 +187,16 @@ func rotateLeftShift(num uint64, bitLen uint8, shift uint8) uint64 {
 	return rst
 }
 
-func calculateSubKeys(key []byte) [][]byte {
+func calculateSubKeys(key uint64) []uint64 {
 
-	//if len(key) != 8 {
-	//	return nil
-	//}
-
-	rst := make([][]byte, 0)
+	rst := make([]uint64, 0)
 
 	shiftTable := []uint8{1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1}
 
-	newKey := transform(key, pc1)
-	tmpKey := make([]byte, 0)
-	tmpKey = append(tmpKey, byte(0x00))
-	tmpKey = append(tmpKey, newKey...)
+	newKey := transform(key, 64, pc1, 56)
 
-	tmp := binary.BigEndian.Uint64(tmpKey)
-	c0 := tmp >> 28
-	d0 := tmp & (uint64(0x01)<<28 - 1)
+	c0 := newKey >> 28
+	d0 := newKey & (uint64(0x01)<<28 - 1)
 	tmpc := c0
 	tmpd := d0
 
@@ -283,33 +204,31 @@ func calculateSubKeys(key []byte) [][]byte {
 
 		tmpc = rotateLeftShift(tmpc, 28, shiftTable[i])
 		tmpd = rotateLeftShift(tmpd, 28, shiftTable[i])
+		tmpK := uint64((tmpc << 28) | tmpd)
 
-		tmpK := make([]byte, 8)
-		binary.BigEndian.PutUint64(tmpK, uint64(uint64(tmpc)<<28|uint64(tmpd)))
-		tmpK = tmpK[1:len(tmpK)]
-
-		ki := transform(tmpK, pc2)
+		ki := transform(tmpK, 56, pc2, 48)
 		rst = append(rst, ki)
 	}
 
 	return rst
 }
 
-func calculateLoop(src []byte) (uint32, uint32){
-	tmpIp := transform(src, ip)
-	l_1 := binary.BigEndian.Uint32(tmpIp[:4])
-	r_1 := binary.BigEndian.Uint32(tmpIp[4:])
+func calculateLoop(src uint64, decrypt bool) (uint32, uint32) {
+	tmpIp := transform(src,64, ip, 64)
+	l_1 := uint32(tmpIp>>32)
+	r_1 := uint32(tmpIp)
 	var l uint32
 	var r uint32
 
 	for i := 0; i < 16; i++ {
-
 		l = r_1
-		byter_1 := make([]byte, 4)
-		binary.BigEndian.PutUint32(byter_1, r_1)
-		fmt.Printf("byter_1: %v\n, k[i]: %v\n", byter_1, k[i])
-		frst := f(byter_1, k[i])
-		r = l_1 ^ binary.BigEndian.Uint32(frst)
+		var frst uint32
+		if !decrypt{
+			frst = f(uint64(r_1), k[i])
+		}else{
+			frst = f(uint64(r_1), k[15-i])
+		}
+		r = l_1 ^ frst
 
 		l_1 = l
 		r_1 = r
@@ -318,30 +237,43 @@ func calculateLoop(src []byte) (uint32, uint32){
 	return l, r
 }
 
-func f(srcR []byte, srcK []byte) []byte{
+func f(srcR uint64, srcK uint64) uint32 {
 
-	fmt.Printf("--------------\n")
-	Er := transform(srcR, E)
-	xRst := xBetweenByteSlice(srcK, Er)
-	//6bit one group
-	rst := transform(s(xRst), P)
-	return rst
+	Er := transform(srcR, 32, E, 48)
+	xRst := uint64(srcK ^ Er)
+	c := s(xRst)
+	rst := transform(c, 32,  P, 32)
+	return uint32(rst)
 }
 
-func (self *EncryptDes) Encrypt(src []byte, key []byte) ([]byte, error){
-	if len(src) != 8{
+func (self *EncryptDes) Encrypt(src []byte, key []byte) ([]byte, error) {
+	if len(src) != 8 || len(key) != 8{
 		return nil, errors.New("invalid param.")
 	}
 
-	k = calculateSubKeys(key)
-	l,r := calculateLoop(src)
-	tmp := uint64(uint64(r)<<32 | uint64(l))
-	bs := make([]byte, 8)
-	binary.BigEndian.PutUint64(bs, tmp)
-	rst := transform(bs, ip_1)
-	return rst, nil
+	keyNum := binary.BigEndian.Uint64(key)
+	srcNum := binary.BigEndian.Uint64(src)
+
+	k = calculateSubKeys(keyNum)
+	l, r := calculateLoop(srcNum, false)
+	bs := uint64(uint64(r)<<32 | uint64(l))
+	rst := transform(bs, 64, ip_1, 64)
+	block := make([]byte, 8)
+	binary.BigEndian.PutUint64(block, rst)
+	return block, nil
 }
 
-//func (self *EncryptDes) Decrypt(src []byte, key []byte) ([]byte, error){
-//
-//}
+func (self *EncryptDes) Decrypt(src []byte, key []byte) ([]byte, error){
+
+	keyNum := binary.BigEndian.Uint64(key)
+	srcNum := binary.BigEndian.Uint64(src)
+
+	k = calculateSubKeys(keyNum)
+	l, r := calculateLoop(srcNum, true)
+	bs := uint64(uint64(r)<<32 | uint64(l))
+	rst := transform(bs, 64, ip_1, 64)
+	block := make([]byte, 8)
+	binary.BigEndian.PutUint64(block, rst)
+
+	return block, nil
+}
