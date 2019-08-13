@@ -1,6 +1,7 @@
 package des
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -138,14 +139,60 @@ func TestCalculateSubKeys(t *testing.T){
 
 	t.Run("test1", func(t *testing.T) {
 		key := []byte{
-			//00010011 00110100 01010111 01111001 10011011 10111100 11011111 11110001
 			0x13, 0x34, 0x57, 0x79, 0x9b, 0xbc, 0xdf, 0xf1,
 		}
 		rst := calculateSubKeys(key)
-		fmt.Printf("rst: %v\n", rst)
 		a.Equal([]byte{
-			//00011011 00000010 11101111 11111100 01110000 01110010
 			0x1b, 0x02, 0xef, 0xfc, 0x70, 0x72,
 		}, rst[0], "invalid rst.")
+	})
+}
+
+func TestS(t *testing.T){
+	a := assert.New(t)
+
+	t.Run("test1", func(t *testing.T) {
+		//01100001 00010111 10111010 10000110 01100101 00100111
+		rst := s([]byte{0x61, 0x17, 0xba, 0x86, 0x65, 0x27})
+		//0101 1100 1000 0010 1011 0101 1001 0111
+		a.Equal([]byte{0x5c, 0x82, 0xb5, 0x97}, rst, "invalid rst")
+	})
+}
+
+
+func TestCalculateLoop(t *testing.T){
+	a := assert.New(t)
+
+	t.Run("test1", func(t *testing.T) {
+		key := []byte{
+			0x13, 0x34, 0x57, 0x79, 0x9b, 0xbc, 0xdf, 0xf1,
+		}
+		k = calculateSubKeys(key)
+
+		src := []byte{
+			0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+		}
+		l,r := calculateLoop(src)
+		a.Equal(uint32(0x43423234), l, "invalid rst")
+		a.Equal(uint32(0x0a4cd995), r, "invalid rst")
+
+		k = k[:0]
+	})
+}
+
+func TestEncryptDes_Encrypt(t *testing.T) {
+	a := assert.New(t)
+
+	t.Run("test1", func(t *testing.T) {
+		var des EncryptDes
+		key := []byte{
+			0x13, 0x34, 0x57, 0x79, 0x9b, 0xbc, 0xdf, 0xf1,
+		}
+		rst, _ := des.Encrypt([]byte{
+			0x01,0x23,0x45,0x67,0x89,0xAB,0xCD,0xEF,
+		}, key)
+		fmt.Printf("rst: %v\n", rst)
+		rstNum := binary.BigEndian.Uint64(rst)
+		a.Equal(uint64(0x85E813540F0AB405), rstNum, "invalid rst")
 	})
 }
