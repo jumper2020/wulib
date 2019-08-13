@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-//http://www.hankcs.com/security/des-algorithm-illustrated.html
 
 func TestTransform(t *testing.T) {
 

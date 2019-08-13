@@ -5,6 +5,11 @@ import (
 	"errors"
 )
 
+//reference:
+//http://www.hankcs.com/security/des-algorithm-illustrated.html
+//http://blog.studygolang.com/2013/01/go%E5%8A%A0%E5%AF%86%E8%A7%A3%E5%AF%86%E4%B9%8Bdes/
+//https://www.cnblogs.com/52fhy/p/6863133.html
+
 type EncryptDes struct {
 }
 
