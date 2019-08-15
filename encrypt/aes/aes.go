@@ -52,7 +52,7 @@ func init() {
 
 	keys = make([][]byte, 10)
 
-	mixConst = []uint8{0x02,0x03,0x01,0x01,0x01,0x02,0x03,0x01,0x01,0x01,0x02,0x03,0x03,0x01,0x01,0x02}
+	mixConst = []uint8{0x02, 0x03, 0x01, 0x01, 0x01, 0x02, 0x03, 0x01, 0x01, 0x01, 0x02, 0x03, 0x03, 0x01, 0x01, 0x02}
 }
 
 func xor(src1 []byte, src2 []byte) []byte {
@@ -97,7 +97,7 @@ func keySchedule(src []byte, ksi int) []byte {
 	//copy(col3, src[8:12])
 	//col4 := make([]byte, 4)
 	//copy(col4, src[12:])
-	//tmpCol4 := []byte{col4[3],col4[0],col4[1],col4[2]}
+	//tmpCol4 := []byte{col4[1], col4[2], col4[3], col4[0]}
 
 	tmpCol4 = subBytes(tmpCol4)
 
@@ -121,6 +121,8 @@ func keySchedule(src []byte, ksi int) []byte {
 	//rst = append(rst, newCol2...)
 	//rst = append(rst, newCol3...)
 	//rst = append(rst, newCol4...)
+
+	fmt.Printf("newcol: %x, %x, %x, %x\n", newCol1, newCol2, newCol3, newCol3)
 
 	return rst
 }
@@ -207,8 +209,8 @@ func multiGroup(src1 []uint8, src2 []uint8) []uint8 {
 	return rst
 }
 
-func rollMix(src []uint8) []uint8{
-	if len(src) != 16{
+func rollMix(src []uint8) []uint8 {
+	if len(src) != 16 {
 		return nil
 	}
 	rst := make([]uint8, 16)
@@ -221,22 +223,21 @@ func rollMix(src []uint8) []uint8{
 	return rst
 }
 
-func mixColumns(src []uint8) []uint8{
+func mixColumns(src []uint8) []uint8 {
 	if len(src) != 16 {
 		return nil
 	}
 
 	tmproll := rollMix(src)
 	tmprst := make([]uint8, 0, 16)
-	for i := 0; i < 16; i+=4 {
+	for i := 0; i < 16; i += 4 {
 		tmprst = append(tmprst, multiGroup(tmproll[i:i+4], mixConst)...)
 	}
 	rst := rollMix(tmprst)
 	return rst
 }
 
-
-func normalRound(src []uint8, i int) []uint8{
+func normalRound(src []uint8, i int) []uint8 {
 	rst := subBytes(src)
 	rst = shiftRows(rst)
 	rst = mixColumns(rst)
@@ -244,7 +245,7 @@ func normalRound(src []uint8, i int) []uint8{
 	return rst
 }
 
-func lastRound(src []uint8) []uint8{
+func lastRound(src []uint8) []uint8 {
 	rst := subBytes(src)
 	rst = shiftRows(rst)
 	rst = xor(rst, keys[9])
@@ -253,7 +254,7 @@ func lastRound(src []uint8) []uint8{
 
 func (self *EncryptAes) Encrypt(src []byte, key []byte) ([]byte, error) {
 
-	tmp := xor(src,key)
+	tmp := xor(src, key)
 	fmt.Printf("tmp: %x\n", tmp)
 	for i := 0; i < 9; i++ {
 		tmp = normalRound(tmp, i)
