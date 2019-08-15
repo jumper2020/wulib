@@ -3,6 +3,7 @@ package aes
 import "fmt"
 
 //http://www.alonemonkey.com/2016/05/25/aes-and-des/
+//? https://medium.com/@14wnrkim/what-is-aes-step-by-step-fcb2ba41bb20
 
 type EncryptInterf interface {
 	Encrypt(src []byte, key []byte) ([]byte, error)
