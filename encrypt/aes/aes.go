@@ -3,7 +3,8 @@ package aes
 //http://www.alonemonkey.com/2016/05/25/aes-and-des/
 //https://kavaliro.com/wp-content/uploads/2014/03/AES.pdf
 //http://aes.online-domain-tools.com/
-//注意：图中矩阵并非是一行对应一维数组的连续元素，而是一列对应了一维数组的连续元素，具体参见上述 AES.pdf, 单元测试也是基于此文档
+//注意:图中矩阵并非是一行对应一维数组的连续元素，而是一列对应了一维数组的连续元素，具体参见上述 AES.pdf, 单元测试也是基于此文档
+//注意:Decrypt 是 Encrypt 的逆过程，大的步骤需要逆，大步骤中的小步骤也需要逆，每个小操作过程也需要逆
 
 type EncryptInterf interface {
 	Encrypt(src []byte, key []byte) ([]byte, error)
@@ -14,7 +15,9 @@ type EncryptAes struct {
 
 var keyScheduleConst [][]uint8
 var subBytesConst [256]byte
+var inverseSubBytesConst [256]byte
 var mixConst []uint8
+var inverseMixConst []uint8
 
 func init() {
 
@@ -50,8 +53,27 @@ func init() {
 		0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16,
 	}
 
+	inverseSubBytesConst = [256]byte{
+		0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
+		0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
+		0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
+		0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25,
+		0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92,
+		0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84,
+		0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06,
+		0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b,
+		0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73,
+		0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e,
+		0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b,
+		0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4,
+		0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f,
+		0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef,
+		0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
+		0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d,
+	}
 
 	mixConst = []uint8{0x02, 0x03, 0x01, 0x01, 0x01, 0x02, 0x03, 0x01, 0x01, 0x01, 0x02, 0x03, 0x03, 0x01, 0x01, 0x02}
+	inverseMixConst = []uint8{0x0E, 0x0B, 0x0D, 0x09, 0x09, 0x0E, 0x0B, 0x0D, 0x0D, 0x09, 0x0E, 0x0B, 0x0B, 0x0D, 0x09, 0x0E}
 }
 
 func xor(src1 []byte, src2 []byte) []byte {
@@ -72,6 +94,14 @@ func subBytes(src []byte) []byte {
 	rst := make([]byte, 0, 16)
 	for _, v := range src {
 		rst = append(rst, subBytesConst[v])
+	}
+	return rst
+}
+
+func inverseSubBytes(src []byte) []byte {
+	rst := make([]byte, 0, 16)
+	for _, v := range src {
+		rst = append(rst, inverseSubBytesConst[v])
 	}
 	return rst
 }
@@ -128,29 +158,29 @@ func shiftrow(src []byte, shift uint) []byte {
 	return rst
 }
 
+//src = []byte{1,2,3,4,5,6,7,8,9}
+//a: 对应一维数组 1 4 7 2 5 8 3 6 9
+//1 4 7
+//2 5 8
+//3 6 9
+
+//变换为
+
+//b:对应一维数组 1 4 7 5 8 2 9 3 6
+//1 4 7
+//5 8 2
+//9 3 6
+
+//变换为
+
+//一维数组 1 5 9 4 8 3 7 2 6
+
+//rollMix(src) 得到a, 经过 shiftrow 得到b
+//此时还需再做一次 rollMix(rst), 才能获得在一维数组形式下正确的结果
 func shiftRows(src []byte) []byte {
 	if len(src) != 16 {
 		return nil
 	}
-	//src = []byte{1,2,3,4,5,6,7,8,9}
-	//a: 对应一维数组 1 4 7 2 5 8 3 6 9
-	//1 4 7
-	//2 5 8
-	//3 6 9
-
-	//变换为
-
-	//b:对应一维数组 1 4 7 5 8 2 9 3 6
-	//1 4 7
-	//5 8 2
-	//9 3 6
-
-	//变换为
-
-	//一维数组 1 5 9 4 8 3 7 2 6
-
-	//rollMix(src) 得到a, 经过 shiftrow 得到b
-	//此时还需再做一次 rollMix(rst), 才能获得在一维数组形式下正确的结果
 
 	tmp := rollMix(src)
 	rst := make([]byte, 0)
@@ -161,22 +191,45 @@ func shiftRows(src []byte) []byte {
 	return rst
 }
 
+func inverseShiftRows(src []byte) []byte {
+	if len(src) != 16 {
+		return nil
+	}
+
+	tmp := rollMix(src)
+	rst := make([]byte, 0)
+	for i := 0; i < len(tmp); i += 4 {
+		rst = append(rst, shiftrow(tmp[i:i+4], uint((4-i/4)%4))...)
+	}
+	rst = rollMix(rst)
+	return rst
+}
+
+func multiTwo(src uint8) uint8 {
+	rst := src << 1
+	if (src & 0x80) != 0 {
+		rst = rst ^ 0x1b
+	}
+	return rst
+}
+
 func multiSingle(src1 uint8, src2 uint8) uint8 {
 	var rst uint8
 	switch src2 {
 	case 1:
 		rst = src1
 	case 2:
-		rst = src1 << 1
-		if (src1 & 0x80) != 0 {
-			rst = rst ^ 0x1b
-		}
+		rst = multiTwo(src1)
 	case 3:
-		rst = src1 << 1
-		if (src1 & 0x80) != 0 {
-			rst = rst ^ 0x1b
-		}
-		rst ^= src1
+		rst = multiTwo(src1) ^ src1
+	case 9:
+		rst = multiTwo(multiTwo(multiTwo(src1))) ^src1
+	case 11:
+		rst = multiTwo(multiTwo(multiTwo(src1))^src1) ^ src1
+	case 13:
+		rst = multiTwo(multiTwo(multiTwo(src1)^src1)) ^ src1
+	case 14:
+		rst = multiTwo(multiTwo(multiTwo(src1)^src1) ^ src1)
 	}
 	return rst
 }
@@ -232,6 +285,21 @@ func mixColumns(src []uint8) []uint8 {
 	return rst
 }
 
+func inverseMixColumns(src []uint8) []uint8 {
+	if len(src) != 16 {
+		return nil
+	}
+
+	tmproll := src
+	tmprst := make([]uint8, 0, 16)
+	//fmt.Printf("roll: %x, mix: %x\n",tmproll, mixConst)
+	for i := 0; i < 16; i += 4 {
+		tmprst = append(tmprst, multiGroup(tmproll[i:i+4], inverseMixConst)...)
+	}
+	rst := tmprst
+	return rst
+}
+
 func normalRound(src []uint8, keys [][]uint8, i int) []uint8 {
 	rst := subBytes(src)
 	rst = shiftRows(rst)
@@ -247,6 +315,21 @@ func lastRound(src []uint8, keys [][]uint8) []uint8 {
 	return rst
 }
 
+func inverseNormalRound(src []uint8, keys [][]uint8, i int) []uint8 {
+	rst := xor(src, keys[i])
+	rst = inverseMixColumns(rst)
+	rst = inverseShiftRows(rst)
+	rst = inverseSubBytes(rst)
+	return rst
+}
+
+func inverseLastRound(src []uint8, keys [][]uint8) []uint8 {
+	rst := xor(src, keys[9])
+	rst = inverseShiftRows(rst)
+	rst = inverseSubBytes(rst)
+	return rst
+}
+
 func (self *EncryptAes) Encrypt(src []byte, key []byte) ([]byte, error) {
 
 	keys := getKeys(key)
@@ -259,6 +342,15 @@ func (self *EncryptAes) Encrypt(src []byte, key []byte) ([]byte, error) {
 	return rst, nil
 }
 
-//func (self *EncryptAes) Decrypt(src []byte, key []byte) ([]byte, error) {
-//
-//}
+func (self *EncryptAes) Decrypt(src []byte, key []byte) ([]byte, error) {
+
+	keys := getKeys(key)
+
+	tmp := inverseLastRound(src, keys)
+	for i := 8; i >=0; i-- {
+		tmp = inverseNormalRound(tmp, keys, i)
+	}
+	rst := xor(tmp, key)
+
+	return rst, nil
+}
