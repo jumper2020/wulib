@@ -2,6 +2,8 @@ package aes
 
 //http://www.alonemonkey.com/2016/05/25/aes-and-des/
 //https://kavaliro.com/wp-content/uploads/2014/03/AES.pdf
+//https://crypto.stackexchange.com/questions/2569/how-does-one-implement-the-inverse-of-aes-mixcolumns
+//https://stackoverflow.com/questions/3436822/aes-decryption-algorithm
 //http://aes.online-domain-tools.com/
 //注意:图中矩阵并非是一行对应一维数组的连续元素，而是一列对应了一维数组的连续元素，具体参见上述 AES.pdf, 单元测试也是基于此文档
 //注意:Decrypt 是 Encrypt 的逆过程，大的步骤需要逆，大步骤中的小步骤也需要逆，每个小操作过程也需要逆
