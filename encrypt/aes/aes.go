@@ -1,9 +1,9 @@
 package aes
 
-import "fmt"
-
 //http://www.alonemonkey.com/2016/05/25/aes-and-des/
-//? https://medium.com/@14wnrkim/what-is-aes-step-by-step-fcb2ba41bb20
+//https://kavaliro.com/wp-content/uploads/2014/03/AES.pdf
+//http://aes.online-domain-tools.com/
+//注意：图中矩阵并非是一行对应一维数组的连续元素，而是一列对应了一维数组的连续元素，具体参见上述 AES.pdf, 单元测试也是基于此文档
 
 type EncryptInterf interface {
 	Encrypt(src []byte, key []byte) ([]byte, error)
@@ -14,7 +14,6 @@ type EncryptAes struct {
 
 var keyScheduleConst [][]uint8
 var subBytesConst [256]byte
-var keys [][]byte
 var mixConst []uint8
 
 func init() {
@@ -51,7 +50,6 @@ func init() {
 		0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16,
 	}
 
-	keys = make([][]byte, 10)
 
 	mixConst = []uint8{0x02, 0x03, 0x01, 0x01, 0x01, 0x02, 0x03, 0x01, 0x01, 0x01, 0x02, 0x03, 0x03, 0x01, 0x01, 0x02}
 }
@@ -66,7 +64,7 @@ func xor(src1 []byte, src2 []byte) []byte {
 		rst = append(rst, v^src2[k])
 	}
 
-	fmt.Printf("xor: %x\n", rst)
+	//fmt.Printf("xor: %x\n", rst)
 	return rst
 }
 
@@ -83,61 +81,35 @@ func keySchedule(src []byte, ksi int) []byte {
 		return nil
 	}
 
-	col1 := []byte{src[0], src[1*4], src[2*4], src[3*4]}
-	col2 := []byte{src[0+1], src[1*4+1], src[2*4+1], src[3*4+1]}
-	col3 := []byte{src[0+2], src[1*4+2], src[2*4+2], src[3*4+2]}
-	col4 := []byte{src[0+3], src[1*4+3], src[2*4+3], src[3*4+3]}
-
-	tmpCol4 := []byte{src[1*4+3], src[2*4+3], src[3*4+3], src[0+3]}
-
-	//col1 := make([]byte, 4)
-	//copy(col1, src[:4])
-	//col2 := make([]byte, 4)
-	//copy(col2, src[4:8])
-	//col3 := make([]byte, 4)
-	//copy(col3, src[8:12])
-	//col4 := make([]byte, 4)
-	//copy(col4, src[12:])
-	//tmpCol4 := []byte{col4[1], col4[2], col4[3], col4[0]}
-
+	tmpCol4 := []byte{src[13], src[14], src[15], src[12]}
 	tmpCol4 = subBytes(tmpCol4)
 
-	fmt.Printf("col: %x, %x, %x, %x\n", col1, col2, col3, col4)
-	fmt.Printf("tmpCol4: %x\n", tmpCol4)
-	newCol1 := xor(xor(col1, tmpCol4), keyScheduleConst[ksi])
-	newCol2 := xor(newCol1, col2)
-	newCol3 := xor(newCol2, col3)
-	newCol4 := xor(newCol3, col4)
+	newCol1 := xor(xor(src[:4], tmpCol4), keyScheduleConst[ksi])
+	newCol2 := xor(newCol1, src[4:8])
+	newCol3 := xor(newCol2, src[8:12])
+	newCol4 := xor(newCol3, src[12:])
 
-	rst := make([]byte, 16)
-	for i := 0; i < 16; i += 4 {
-		rst[i] = newCol1[i/4]
-		rst[i+1] = newCol2[i/4]
-		rst[i+2] = newCol3[i/4]
-		rst[i+3] = newCol4[i/4]
-	}
-
-	//rst := make([]byte, 0)
-	//rst = append(rst, newCol1...)
-	//rst = append(rst, newCol2...)
-	//rst = append(rst, newCol3...)
-	//rst = append(rst, newCol4...)
-
-	fmt.Printf("newcol: %x, %x, %x, %x\n", newCol1, newCol2, newCol3, newCol3)
+	rst := make([]byte, 0)
+	rst = append(rst, newCol1...)
+	rst = append(rst, newCol2...)
+	rst = append(rst, newCol3...)
+	rst = append(rst, newCol4...)
 
 	return rst
 }
 
-func getKeys(src []byte) {
+func getKeys(src []byte) [][]byte {
 
 	tmp := make([]byte, len(src))
 	copy(tmp, src)
+
+	keys := make([][]byte, 10)
 
 	for i := 0; i < 10; i++ {
 		keys[i] = keySchedule(tmp, i)
 		tmp = keys[i]
 	}
-	return
+	return keys
 }
 
 func shiftrow(src []byte, shift uint) []byte {
@@ -160,12 +132,32 @@ func shiftRows(src []byte) []byte {
 	if len(src) != 16 {
 		return nil
 	}
+	//src = []byte{1,2,3,4,5,6,7,8,9}
+	//a: 对应一维数组 1 4 7 2 5 8 3 6 9
+	//1 4 7
+	//2 5 8
+	//3 6 9
 
+	//变换为
+
+	//b:对应一维数组 1 4 7 5 8 2 9 3 6
+	//1 4 7
+	//5 8 2
+	//9 3 6
+
+	//变换为
+
+	//一维数组 1 5 9 4 8 3 7 2 6
+
+	//rollMix(src) 得到a, 经过 shiftrow 得到b
+	//此时还需再做一次 rollMix(rst), 才能获得在一维数组形式下正确的结果
+
+	tmp := rollMix(src)
 	rst := make([]byte, 0)
-	for i := 0; i < len(src); i += 4 {
-		rst = append(rst, shiftrow(src[i:i+4], uint(i/4))...)
+	for i := 0; i < len(tmp); i += 4 {
+		rst = append(rst, shiftrow(tmp[i:i+4], uint(i/4))...)
 	}
-
+	rst = rollMix(rst)
 	return rst
 }
 
@@ -229,16 +221,18 @@ func mixColumns(src []uint8) []uint8 {
 		return nil
 	}
 
-	tmproll := rollMix(src)
+	//注意此处哪一行与哪一列进行计算，参见 aes.pdf AES Example - Round 1, Mix Column
+	tmproll := src
 	tmprst := make([]uint8, 0, 16)
+	//fmt.Printf("roll: %x, mix: %x\n",tmproll, mixConst)
 	for i := 0; i < 16; i += 4 {
 		tmprst = append(tmprst, multiGroup(tmproll[i:i+4], mixConst)...)
 	}
-	rst := rollMix(tmprst)
+	rst := tmprst
 	return rst
 }
 
-func normalRound(src []uint8, i int) []uint8 {
+func normalRound(src []uint8, keys [][]uint8, i int) []uint8 {
 	rst := subBytes(src)
 	rst = shiftRows(rst)
 	rst = mixColumns(rst)
@@ -246,7 +240,7 @@ func normalRound(src []uint8, i int) []uint8 {
 	return rst
 }
 
-func lastRound(src []uint8) []uint8 {
+func lastRound(src []uint8, keys [][]uint8) []uint8 {
 	rst := subBytes(src)
 	rst = shiftRows(rst)
 	rst = xor(rst, keys[9])
@@ -255,13 +249,12 @@ func lastRound(src []uint8) []uint8 {
 
 func (self *EncryptAes) Encrypt(src []byte, key []byte) ([]byte, error) {
 
+	keys := getKeys(key)
 	tmp := xor(src, key)
-	fmt.Printf("tmp: %x\n", tmp)
 	for i := 0; i < 9; i++ {
-		tmp = normalRound(tmp, i)
+		tmp = normalRound(tmp, keys, i)
 	}
-	fmt.Printf("tmp: %x\n", tmp)
-	rst := lastRound(tmp)
+	rst := lastRound(tmp, keys)
 
 	return rst, nil
 }
