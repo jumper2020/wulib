@@ -43,8 +43,9 @@ import (
 //看下自己提的问 https://stackoverflow.com/questions/57405451/question-about-byte-order-and-go-standard-library?noredirect=1#comment101330134_57405451
 //别人回答： Yes, you have to pick the endianess for the file if you store binary data (for text formats it's already decided by the encoding).
 //However, the code that deals with the file in no way depends on the endianess of the machine running that code. Not in Go nor any other language.
-//In Go you just use either of binary.LittleEndian or binary.BigEndian consistently and you're done. – Peter 1 hour ago
-
+//In Go you just use either of binary.LittleEndian or binary.BigEndian consistently and you're done.
+//其实换句话说，pc本身有一个默认的endianess(决定了直接赋值一个uint16时在内存中如何存储），但是程序可以人为的以指定的endianess进行存储。
+//因此对应一个程序来说，主要的是程序读写文件所使用的endianess要一致，而不是机器本身默认的endianess.
 
 //function:
 //0. check big endian / little endian
@@ -145,7 +146,7 @@ func littleU64ToBS(src uint64) []byte{
 }
 
 func littleBSToU16(src []byte) uint16{
-	return  uint16(src[0]) | uint16(src[1])<<8
+	return uint16(src[0]) | uint16(src[1])<<8
 }
 
 func littleBSToU32(src []byte) uint32{
@@ -156,3 +157,4 @@ func littleBSToU64(src []byte) uint64{
 	return uint64(src[0]) | uint64(src[1])<<8 | uint64(src[2])<<16 | uint64(src[3])<<24 |
 		uint64(src[4])<<32 | uint64(src[5])<<40 | uint64(src[6])<<48 | uint64(src[7])<<56
 }
+

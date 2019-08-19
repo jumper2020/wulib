@@ -1,0 +1,16 @@
+密码学入门思考：
+1. hash(md5/sha256) 通过 mod 等运算来丢弃部分信息，从而导致不能反向推导原信息
+2. 对称加密 (des/aes) 主要通过各种置换（不会丢失信息），让过程可逆，并且在数学原理上具备很强的安全性
+3. 非对称加密 (rsa/ecc) 主要通过各种单向性运算（rsa-大整数因式分解/ecc-椭圆曲线) 来保证由私钥推导公钥容易，由公钥推导私钥几乎不可能。
+
+md5 - implement - use
+sha256 - implement - use
+des - implement - use
+aes - implement - use
+rst - understand - use
+ecc - understand - use
+
+
+待完成：
+crc ... 内容学习
+上述标准加密库使用方式

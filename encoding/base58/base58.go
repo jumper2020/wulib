@@ -34,6 +34,7 @@ func init() {
 func getZeroCount(src []byte) int{
 	var count int
 	for index:=0; index<len(src); index+=2{
+		//此处注意：正常情况应该使用0x0000 来表示，这里写成字符是因为输入使用字符串来表示十六进制数，参见_test.go
 		if src[index] == '0' && src[index+1] == '0'{
 			count++
 		}else{

@@ -1,5 +1,14 @@
 package base64
 
+//base64 编码
+//将字节流表示成为可读字符串
+//2^6 = 64 即 6bit可以表示64种字符，3个字节24bit 因此可以转换为4个字符。 3bytes -> 4char
+//字节数 % 3, 差几个字节补几个'='
+//在编码过程中将3个字节转为一个uint32, uint32(src[0])<<16 | uint32(src[1])<<8 | uint32(src[2])
+//之后 << >> & 获取对应6bit 查找转换表获得字符即可。
+//解码过程，将4个字符转换为3字节即可。
+//注意：解码过程中参考标准库，对于存放对应关系表，发现使用 array 比 map 性能上快太多，因此这里使用 array.
+
 type Base64Coding struct {
 }
 
@@ -103,9 +112,9 @@ func (self *Base64Coding) Decode(src []byte) []byte {
 	for si < n-4{
 
 		value := uint(tableReverseSlice[src[si]]&0x3F) << 18 | uint(tableReverseSlice[src[si+1]]&0x3F) << 12 | uint(tableReverseSlice[src[si+2]]&0x3F) << 6 | uint(tableReverseSlice[src[si+3]]&0x3F)
-		rst[di] = byte((value >> 16) & 0xFF)
-		rst[di+1] = byte((value >> 8) & 0xFF)
-		rst[di+2] = byte((value) & 0xFF)
+		rst[di] = byte(value >> 16)
+		rst[di+1] = byte(value >> 8)
+		rst[di+2] = byte(value)
 
 		si += 4
 		di += 3
@@ -118,15 +127,15 @@ func (self *Base64Coding) Decode(src []byte) []byte {
 	case 0:
 		value = value | uint(tableReverseSlice[src[si+2]]&0x3F) << 6
 		value = value | uint(tableReverseSlice[src[si+3]]&0x3F)
-		rst[di] = byte((value >> 16) & 0xFF)
-		rst[di+1] = byte((value >> 8) & 0xFF)
-		rst[di+2] = byte((value) & 0xFF)
+		rst[di] = byte(value >> 16)
+		rst[di+1] = byte(value >> 8)
+		rst[di+2] = byte(value)
 	case 1:
 		value = value | uint(tableReverseSlice[src[si+2]]&0x3F) << 6
-		rst[di] = byte((value >> 16) & 0xFF)
-		rst[di+1] = byte((value >> 8) & 0xFF)
+		rst[di] = byte(value >> 16)
+		rst[di+1] = byte(value >> 8)
 	case 2:
-		rst[di] = byte((value >> 16) & 0xFF)
+		rst[di] = byte(value >> 16)
 	}
 
 	return rst
